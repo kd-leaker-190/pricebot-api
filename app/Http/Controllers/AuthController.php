@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
+use App\Mail\EmailVerificationCode;
 use App\Models\User;
-use App\Notifications\EmailVerificationCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Mail;
 
 class AuthController extends ApiController
 {
@@ -28,19 +29,22 @@ class AuthController extends ApiController
             'password' => Hash::make($request->password),
         ]);
 
-        $code = random_int(100000, 999999);
-        $user->email_verification_code = $code;
-        $user->save();
-
-        $user->notify(new EmailVerificationCode($code));
-
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $code = rand(100000, 999999);
+        $user->update([
+            'email_verification_code' => $code,
+            'email_verification_code_expires_at' => now()->addMinutes(15),
+        ]);
+
+        Mail::to($user->email)->send(new EmailVerificationCode($code));
 
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
         ], 201, 'Registered successfully');
     }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -53,14 +57,15 @@ class AuthController extends ApiController
         }
 
         $user = User::where('email', $request->email)->first();
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return $this->errorResponse('Your credentials does not match ours', 401);
         }
 
-        if (! $user->email_verified_at) {
+        if (!$user->email_verified_at) {
             return $this->errorResponse('Email not verified', 403);
         }
 
+        $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->successResponse([
@@ -68,32 +73,68 @@ class AuthController extends ApiController
             'token' => $token,
         ], 200, 'Logged in successfully');
     }
+
     public function logout(Request $request)
     {
         Auth::user()->tokens()->delete();
         return $this->successResponse(new UserResource(Auth::user()), 200, 'Logged out successfully');
     }
+
     public function me()
     {
-        return $this->successResponse(new UserResource(Auth::user()), 200, 'User Details');
+        return $this->successResponse(new UserResource(Auth::user()), 200, '');
     }
+
     public function verifyEmail(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'code' => 'required|digits:6'
+        $validator = Validator::make($request->all(), [
+            'code' => 'required|digits:6',
         ]);
 
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || $user->email_verification_code !== $request->code) {
-            return response()->json(['message' => 'Invalid code'], 422);
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->messages(), 422);
         }
 
-        $user->email_verified_at = now();
-        $user->email_verification_code = null;
-        $user->save();
+        $user = Auth::user();
 
-        return $this->successResponse(new UserResource($user), 200, 'Email verified successfully.');
+        if ($request->code != $user->email_verification_code) {
+            return $this->errorResponse('Wrong verification code', 422);
+        }
+
+        if (!$user->email_verification_code_expires_at || now()->greaterThan($user->email_verification_code_expires_at)) {
+            return $this->errorResponse('Verification code expired or not exists', 422);
+        }
+
+        $user->update([
+            'email_verified_at' => now(),
+            'email_verification_code' => null,
+            'email_verification_code_expires_at' => null,
+        ]);
+
+        return $this->successResponse(new UserResource($user), 200, 'Email verified successfully');
+    }
+
+    public function resendVerificationCode(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->email_verification_code_expires_at && now()->lessThan($user->email_verification_code_expires_at->subMinutes(10))) {
+            return $this->errorResponse('لطفاً چند دقیقه صبر کنید قبل از ارسال مجدد.', 429);
+        }
+
+        if ($user->email_verified_at) {
+            return $this->errorResponse('ایمیل تایید شده است نیازی به ارسال مجدد کد نیست', 422);
+        }
+
+        $code = rand(100000, 999999);
+
+        $user->update([
+            'email_verification_code' => $code,
+            'email_verification_code_expires_at' => now()->addMinutes(15),
+        ]);
+
+        Mail::to($user->email)->send(new EmailVerificationCode($code));
+
+        return $this->successResponse(new UserResource($user), 200, 'کد تایید مجدداً ارسال شد.');
     }
 }
