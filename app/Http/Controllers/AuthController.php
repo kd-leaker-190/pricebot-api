@@ -8,8 +8,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Mail;
 
 class AuthController extends ApiController
 {
@@ -117,10 +117,6 @@ class AuthController extends ApiController
     public function resendVerificationCode(Request $request)
     {
         $user = Auth::user();
-
-        if ($user->email_verification_code_expires_at && now()->lessThan($user->email_verification_code_expires_at->subMinutes(10))) {
-            return $this->errorResponse('لطفاً چند دقیقه صبر کنید قبل از ارسال مجدد.', 429);
-        }
 
         if ($user->email_verified_at) {
             return $this->errorResponse('ایمیل تایید شده است نیازی به ارسال مجدد کد نیست', 422);
