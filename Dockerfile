@@ -1,37 +1,24 @@
-FROM php:8.2-cli AS build
+FROM php:8.2-fpm
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    unzip \
-    git \
-    libpq-dev \
-    libzip-dev \
-    zip \
-    && docker-php-ext-install pdo pdo_mysql zip
+    git curl unzip libpq-dev libonig-dev libzip-dev zip \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip
 
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+WORKDIR /var/www
 
+# Copy app files
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache \
-    && php artisan storage:link
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-FROM php:8.2-cli
+# Laravel setup
+RUN php artisan config:clear && \
+    php artisan route:clear && \
+    php artisan view:clear
 
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    libzip-dev \
-    zip \
-    && docker-php-ext-install pdo pdo_mysql zip
-
-WORKDIR /app
-
-COPY --from=build /app /app
-
-ENV PORT=8000
-
-CMD php artisan serve --host 0.0.0.0 --port $PORT
+CMD ["php-fpm"]
