@@ -49,4 +49,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
         ];
     }
+
+    public function robot()
+    {
+        return $this->hasOne(Robot::class);
+    }
 }

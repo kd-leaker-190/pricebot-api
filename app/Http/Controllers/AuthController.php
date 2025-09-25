@@ -39,6 +39,8 @@ class AuthController extends ApiController
 
         Mail::to($user->email)->send(new EmailVerificationCode($code));
 
+        $user->load('robot');
+
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
@@ -68,6 +70,8 @@ class AuthController extends ApiController
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load('robot');
+
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
@@ -76,12 +80,16 @@ class AuthController extends ApiController
 
     public function logout(Request $request)
     {
-        Auth::user()->tokens()->delete();
+        $user = Auth::user();
+        $user->tokens()->delete();
+        $user->load('robot');
         return $this->successResponse(new UserResource(Auth::user()), 200, 'Logged out successfully');
     }
 
     public function me()
     {
+        $user = Auth::user();
+        $user->load('robot');
         return $this->successResponse(new UserResource(Auth::user()), 200, '');
     }
 
@@ -111,6 +119,8 @@ class AuthController extends ApiController
             'email_verification_code_expires_at' => null,
         ]);
 
+        $user->load('robot');
+
         return $this->successResponse(new UserResource($user), 200, 'Email verified successfully');
     }
 
@@ -130,6 +140,8 @@ class AuthController extends ApiController
         ]);
 
         Mail::to($user->email)->send(new EmailVerificationCode($code));
+
+        $user->load('robot');
 
         return $this->successResponse(new UserResource($user), 200, 'کد تایید مجدداً ارسال شد.');
     }

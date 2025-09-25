@@ -15,7 +15,7 @@ trait ApiResponser
     public function errorResponse($message, $status)
     {
         return response()->json([
-            'status' => 'success',
+            'status' => 'error',
             'message' => $message,
             'data' => '',
         ], $status);
