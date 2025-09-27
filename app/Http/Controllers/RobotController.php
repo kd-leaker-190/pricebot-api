@@ -14,7 +14,6 @@ class RobotController extends ApiController
     public function launch(Request $request)
     {
         $valdiator = Validator::make(request()->all(), [
-            'user_id' => 'required|integer|exists:users,id',
             'domain' => 'required|string|unique:robots,domain',
             'currency' => 'required|string|in:USD,EUR,JPY,GBD',
             'shop_name' => 'required|string|unique:robots,shop_name',
@@ -27,7 +26,7 @@ class RobotController extends ApiController
         }
 
         $robot = Robot::create([
-            'user_id' => $request->user_id,
+            'user_id' => Auth::id(),
             'domain' => $request->domain,
             'currency' => $request->currency,
             'shop_name' => $request->shop_name,

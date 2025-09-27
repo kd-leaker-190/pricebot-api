@@ -31,7 +31,7 @@ class AuthController extends ApiController
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $code = rand(100000, 999999);
+        $code = random_int(100000, 999999);
         $user->update([
             'email_verification_code' => $code,
             'email_verification_code_expires_at' => now()->addMinutes(15),
@@ -39,14 +39,11 @@ class AuthController extends ApiController
 
         Mail::to($user->email)->send(new EmailVerificationCode($code));
 
-        $user->load('robot');
-
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
         ], 201, 'Registered successfully');
     }
-
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -70,29 +67,23 @@ class AuthController extends ApiController
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $user->load('robot');
-
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
         ], 200, 'Logged in successfully');
     }
-
     public function logout(Request $request)
     {
         $user = Auth::user();
         $user->tokens()->delete();
-        $user->load('robot');
         return $this->successResponse(new UserResource(Auth::user()), 200, 'Logged out successfully');
     }
-
     public function me()
     {
         $user = Auth::user();
         $user->load('robot');
         return $this->successResponse(new UserResource(Auth::user()), 200, '');
     }
-
     public function verifyEmail(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -119,12 +110,9 @@ class AuthController extends ApiController
             'email_verification_code_expires_at' => null,
         ]);
 
-        $user->load('robot');
-
         return $this->successResponse(new UserResource($user), 200, 'Email verified successfully');
     }
-
-    public function resendVerificationCode(Request $request)
+    public function resendVerificationCode()
     {
         $user = Auth::user();
 
@@ -132,7 +120,7 @@ class AuthController extends ApiController
             return $this->errorResponse('ایمیل تایید شده است نیازی به ارسال مجدد کد نیست', 422);
         }
 
-        $code = rand(100000, 999999);
+        $code = random_int(100000, 999999);
 
         $user->update([
             'email_verification_code' => $code,
@@ -140,8 +128,6 @@ class AuthController extends ApiController
         ]);
 
         Mail::to($user->email)->send(new EmailVerificationCode($code));
-
-        $user->load('robot');
 
         return $this->successResponse(new UserResource($user), 200, 'کد تایید مجدداً ارسال شد.');
     }
