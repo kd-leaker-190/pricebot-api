@@ -42,7 +42,7 @@ class AuthController extends ApiController
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
-        ], 201, 'Registered successfully');
+        ], 201, 'Registered successfully')->cookie('auth_token', $token, 60 * 24 * 7, '/', null, true, true);
     }
     public function login(Request $request)
     {
@@ -70,13 +70,13 @@ class AuthController extends ApiController
         return $this->successResponse([
             'user' => new UserResource($user),
             'token' => $token,
-        ], 200, 'Logged in successfully');
+        ], 200, 'Logged in successfully')->cookie('auth_token', $token, 60 * 24 * 7, '/', null, true, true);
     }
     public function logout(Request $request)
     {
         $user = Auth::user();
         $user->tokens()->delete();
-        return $this->successResponse(new UserResource(Auth::user()), 200, 'Logged out successfully');
+        return $this->successResponse(new UserResource(Auth::user()), 200, 'Logged out successfully')->cookie('auth_token', '', -1, '/');
     }
     public function me()
     {
