@@ -45,7 +45,7 @@ class EmailVerificationController extends ApiController
         $user = Auth::user();
 
         if ($user->email_verified_at) {
-            return $this->errorResponse('ایمیل تایید شده است نیازی به ارسال مجدد کد نیست', 422);
+            return $this->errorResponse('Email already verified', 422);
         }
 
         $code = random_int(100000, 999999);
@@ -57,6 +57,6 @@ class EmailVerificationController extends ApiController
 
         Mail::to($user->email)->send(new EmailVerificationCode($code));
 
-        return $this->successResponse(new UserResource($user), 200, 'کد تایید مجدداً ارسال شد.');
+        return $this->successResponse(new UserResource($user), 200, 'Verification code resended');
     }
 }

@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('logout', [AuthController::class, 'logout'])->middleware(['verified', 'auth:sanctum']);
-    Route::post('me', [AuthController::class, 'me'])->middleware(['verified', 'auth:sanctum']);
+    Route::post('logout', [AuthController::class, 'logout'])->middleware(['auth:sanctum']);
+    Route::post('me', [AuthController::class, 'me'])->middleware(['auth:sanctum']);
 
     Route::get('google/redirect', [GoogleAuthController::class, 'redirect']);
     Route::get('google/callback', [GoogleAuthController::class, 'callback']);
