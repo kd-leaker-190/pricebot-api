@@ -1,6 +1,8 @@
 <?php
 
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\RobotController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,9 +12,12 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout'])->middleware(['verified', 'auth:sanctum']);
     Route::post('me', [AuthController::class, 'me'])->middleware(['verified', 'auth:sanctum']);
-    // ============================================== Email verification ==============================================
-    Route::post('email/verify-code', [AuthController::class, 'verifyEmail'])->middleware(['auth:sanctum']);
-    Route::post('email/verify-code/resend', [AuthController::class, 'resendVerificationCode'])->middleware(['auth:sanctum']);
+
+    Route::get('google/redirect', [GoogleAuthController::class, 'redirect']);
+    Route::get('google/callback', [GoogleAuthController::class, 'callback']);
+
+    Route::post('email/verify-code', [EmailVerificationController::class, 'verifyEmail'])->middleware(['auth:sanctum']);
+    Route::post('email/verify-code/resend', [EmailVerificationController::class, 'resendVerificationCode'])->middleware(['auth:sanctum']);
 });
 
 // ============================================== Robot/Launch ==============================================
